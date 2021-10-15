@@ -1,12 +1,8 @@
 package picodb
 
 import (
-	"bytes"
-	"encoding/gob"
 	"os"
 	"path"
-
-	"github.com/gofrs/flock"
 )
 
 // PicoDb is a simplistic directory based key-value storage.
@@ -23,6 +19,7 @@ type PicoDb struct {
 type PicoDbOptions struct {
 	RootPath    string      // root directory
 	FileMode    os.FileMode // create chmod for the root path, defaults to 0700
+	Compression bool        // enable compression at rest
 	Caching     bool        // enable in-memory cache
 	FileWatcher bool        // enable file watcher
 }
@@ -41,37 +38,15 @@ func New(options *PicoDbOptions) (*PicoDb, error) {
 }
 
 func (p *PicoDb) Write(key string, data interface{}) error {
-	lf := p.lockFile(key)
-	lock := flock.New(lf)
-	err := lock.Lock()
-	if err != nil {
-		return err
-	}
-	defer lock.Unlock()
-	defer os.Remove(lf)
-	return p.writeInternal(key, data)
+	path := p.dataFile(key)
+	return p.writeWithLock(path, data)
 }
 
-func (p *PicoDb) writeInternal(key string, data interface{}) error {
-	df := p.dataFile(key)
-	f, err := os.Create(df)
-	if err != nil {
-		return err
-	}
-	buf := new(bytes.Buffer)
-	e := gob.NewEncoder(buf)
-	err = e.Encode(data)
-	if err != nil {
-		return err
-	}
-	f.Write(buf.Bytes())
-	return nil
+func (p *PicoDb) Read(key string, data interface{}) error {
+	path := p.dataFile(key)
+	return p.readWithLock(path, data)
 }
 
 func (p *PicoDb) dataFile(key string) string {
 	return path.Join(p.opt.RootPath, key)
-}
-
-func (p *PicoDb) lockFile(key string) string {
-	return p.dataFile(key) + ".lock"
 }

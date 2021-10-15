@@ -59,3 +59,25 @@ func Test_New(t *testing.T) {
 	})
 
 }
+
+func Test_Write(t *testing.T) {
+
+	path, err := os.MkdirTemp(os.TempDir(), "pdb")
+	require.NoError(t, err)
+	defer os.RemoveAll(path)
+
+	dir := path + "/write"
+	p, err := New(&PicoDbOptions{
+		RootPath: dir,
+	})
+	require.NoError(t, err)
+
+	data := struct {
+		Str string
+		Num int
+	}{"test", 5}
+
+	err = p.Write("key", data)
+	assert.NoError(t, err)
+
+}
