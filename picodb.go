@@ -1,8 +1,12 @@
 package picodb
 
 import (
+	"bytes"
+	"encoding/gob"
 	"os"
 	"path"
+
+	"github.com/gofrs/flock"
 )
 
 // PicoDb is a simplistic directory based key-value storage.
@@ -36,10 +40,38 @@ func New(options *PicoDbOptions) (*PicoDb, error) {
 	}, nil
 }
 
-func (p *PicoDb) Write(key string, data interface{}) {
-	// flock.New()
+func (p *PicoDb) Write(key string, data interface{}) error {
+	lf := p.lockFile(key)
+	lock := flock.New(lf)
+	err := lock.Lock()
+	if err != nil {
+		return err
+	}
+	defer lock.Unlock()
+	defer os.Remove(lf)
+	return p.writeInternal(key, data)
 }
 
-func (p *PicoDb) dataPath(key string) string {
+func (p *PicoDb) writeInternal(key string, data interface{}) error {
+	df := p.dataFile(key)
+	f, err := os.Create(df)
+	if err != nil {
+		return err
+	}
+	buf := new(bytes.Buffer)
+	e := gob.NewEncoder(buf)
+	err = e.Encode(data)
+	if err != nil {
+		return err
+	}
+	f.Write(buf.Bytes())
+	return nil
+}
+
+func (p *PicoDb) dataFile(key string) string {
 	return path.Join(p.opt.RootPath, key)
+}
+
+func (p *PicoDb) lockFile(key string) string {
+	return p.dataFile(key) + ".lock"
 }
