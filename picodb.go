@@ -1,6 +1,9 @@
 package picodb
 
-import "os"
+import (
+	"os"
+	"path"
+)
 
 // PicoDb is a simplistic directory based key-value storage.
 // Keys are always of type string, and PicoDb will store the data
@@ -13,12 +16,11 @@ type PicoDb struct {
 
 // PicoDbOptions contains options which are passed on to the
 // New function to create a PicoDb instace.
-// RootPath: the root directory where PicoDb will store the data
-// FileMode: (optional) when the RootPath does not exist, it will be created
-//           using this file mode the default value is 0700
 type PicoDbOptions struct {
-	RootPath string      // the root directory
-	FileMode os.FileMode // the file mode of the picodb root path
+	RootPath    string      // root directory
+	FileMode    os.FileMode // create chmod for the root path, defaults to 0700
+	Caching     bool        // enable in-memory cache
+	FileWatcher bool        // enable file watcher
 }
 
 func New(options *PicoDbOptions) (*PicoDb, error) {
@@ -32,4 +34,12 @@ func New(options *PicoDbOptions) (*PicoDb, error) {
 	return &PicoDb{
 		opt: options,
 	}, nil
+}
+
+func (p *PicoDb) Write(key string, data interface{}) {
+	// flock.New()
+}
+
+func (p *PicoDb) dataPath(key string) string {
+	return path.Join(p.opt.RootPath, key)
 }
