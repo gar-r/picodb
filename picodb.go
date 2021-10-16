@@ -4,6 +4,9 @@ import (
 	"errors"
 	"os"
 	"sync"
+	"time"
+
+	"github.com/google/uuid"
 )
 
 // PicoDb is a simplistic directory based key-value storage.
@@ -14,16 +17,18 @@ import (
 type PicoDb struct {
 	opt   *PicoDbOptions
 	cache *sync.Map
+	id    uuid.UUID
 }
 
 // PicoDbOptions contains options which are passed on to the
 // New function to create a PicoDb instace.
 type PicoDbOptions struct {
-	RootPath    string      // root directory
-	FileMode    os.FileMode // create chmod for the root path, defaults to 0700
-	Compression bool        // enable compression at rest
-	Caching     bool        // enable in-memory cache
-	FileWatcher bool        // enable file watcher (ignored unless cache is enabled)
+	RootPath    string        // root directory
+	FileMode    os.FileMode   // create chmod for the root path, defaults to 0700
+	Compression bool          // enable compression at rest
+	Caching     bool          // enable in-memory cache
+	Watcher     bool          // enable watcher (ignored unless cache is enabled)
+	WatcherFreq time.Duration // how frequently the watcher checks for updates
 }
 
 func New(options *PicoDbOptions) (*PicoDb, error) {
@@ -34,9 +39,11 @@ func New(options *PicoDbOptions) (*PicoDb, error) {
 	if err != nil {
 		return nil, err
 	}
+	// TODO: init watcher
 	return &PicoDb{
 		opt:   options,
 		cache: &sync.Map{},
+		id:    uuid.New(),
 	}, nil
 }
 
@@ -49,11 +56,11 @@ func (p *PicoDb) Write(key string, data interface{}) error {
 
 func (p *PicoDb) Read(key string, data interface{}) error {
 	ok, err := p.Exists(key)
-	if !ok {
-		return errors.New(ErrNoExist)
-	}
 	if err != nil {
 		return err
+	}
+	if !ok {
+		return errors.New(ErrNoExist)
 	}
 	if p.opt.Caching {
 		return p.readWithCache(key, data)
@@ -66,6 +73,13 @@ func (p *PicoDb) Exists(key string) (bool, error) {
 		return p.existsWithCache(key)
 	}
 	return p.existsInternal(key)
+}
+
+func (p *PicoDb) Delete(key string) error {
+	if p.opt.Caching {
+		return p.deleteWithCache(key)
+	}
+	return p.deleteInternal(key)
 }
 
 const ErrNoExist = "key does not exist"
