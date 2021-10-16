@@ -1,8 +1,9 @@
 package picodb
 
 import (
+	"errors"
 	"os"
-	"path"
+	"sync"
 )
 
 // PicoDb is a simplistic directory based key-value storage.
@@ -11,7 +12,8 @@ import (
 // PicoDb is always initialized with a root path, which will
 // contain the data.
 type PicoDb struct {
-	opt *PicoDbOptions
+	opt   *PicoDbOptions
+	cache *sync.Map
 }
 
 // PicoDbOptions contains options which are passed on to the
@@ -21,7 +23,7 @@ type PicoDbOptions struct {
 	FileMode    os.FileMode // create chmod for the root path, defaults to 0700
 	Compression bool        // enable compression at rest
 	Caching     bool        // enable in-memory cache
-	FileWatcher bool        // enable file watcher
+	FileWatcher bool        // enable file watcher (ignored unless cache is enabled)
 }
 
 func New(options *PicoDbOptions) (*PicoDb, error) {
@@ -33,20 +35,41 @@ func New(options *PicoDbOptions) (*PicoDb, error) {
 		return nil, err
 	}
 	return &PicoDb{
-		opt: options,
+		opt:   options,
+		cache: &sync.Map{},
 	}, nil
 }
 
 func (p *PicoDb) Write(key string, data interface{}) error {
-	path := p.dataFile(key)
-	return p.writeWithLock(path, data)
+	if p.opt.Caching {
+		return p.writeWithCache(key, data)
+	}
+	return p.writeInternal(key, data)
 }
 
 func (p *PicoDb) Read(key string, data interface{}) error {
-	path := p.dataFile(key)
-	return p.readWithLock(path, data)
+	ok, err := p.Exists(key)
+	if !ok {
+		return errors.New(ErrNoExist)
+	}
+	if err != nil {
+		return err
+	}
+	if p.opt.Caching {
+		return p.readWithCache(key, data)
+	}
+	return p.readInternal(key, data)
 }
 
-func (p *PicoDb) dataFile(key string) string {
-	return path.Join(p.opt.RootPath, key)
+func (p *PicoDb) Exists(key string) (bool, error) {
+	if p.opt.Caching {
+		return p.existsWithCache(key)
+	}
+	return p.existsInternal(key)
+}
+
+const ErrNoExist = "key does not exist"
+
+func IsNoExist(err error) bool {
+	return err.Error() == ErrNoExist
 }

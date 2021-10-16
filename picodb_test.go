@@ -101,6 +101,76 @@ func Test_Readback(t *testing.T) {
 
 }
 
+func Test_MissingKey(t *testing.T) {
+
+	path, err := os.MkdirTemp(os.TempDir(), "pdb")
+	require.NoError(t, err)
+	defer os.RemoveAll(path)
+
+	dir := path + "/missing"
+	p, err := New(&PicoDbOptions{
+		RootPath: dir,
+	})
+	require.NoError(t, err)
+
+	exists, err := p.Exists("missing")
+	require.NoError(t, err)
+	assert.False(t, exists)
+
+	var i interface{}
+	err = p.Read("missing", &i)
+	assert.Error(t, err)
+	assert.True(t, IsNoExist(err))
+}
+
+func Test_Cache(t *testing.T) {
+
+	path, err := os.MkdirTemp(os.TempDir(), "pdb")
+	require.NoError(t, err)
+	defer os.RemoveAll(path)
+
+	dir := path + "/cache"
+	p, err := New(&PicoDbOptions{
+		RootPath: dir,
+		Caching:  true,
+	})
+	require.NoError(t, err)
+
+	t.Run("cache hit", func(t *testing.T) {
+
+		data := testData{
+			Num:  5,
+			Str:  "test",
+			Flag: true,
+		}
+
+		p.Write("test", data)
+
+		var actual testData
+		p.Read("test", &actual)
+
+		assert.Equal(t, data, actual)
+	})
+
+	t.Run("cache miss", func(t *testing.T) {
+
+		data := testData{
+			Num:  5,
+			Str:  "test",
+			Flag: true,
+		}
+
+		p.Write("test", data)
+		p.cache.Delete("test") // remove key from cache
+
+		var actual testData
+		p.Read("test", &actual) // this read should hit the fs
+
+		assert.Equal(t, data, actual)
+	})
+
+}
+
 func assertReadback(t *testing.T, p *PicoDb, data interface{}) {
 	t.Helper()
 	err := p.Write("key", data)
