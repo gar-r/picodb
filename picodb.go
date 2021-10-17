@@ -79,9 +79,3 @@ func (p *PicoDb) Load(key string) ([]byte, error) {
 func (p *PicoDb) path(key string) string {
 	return path.Join(p.opt.RootDir, key)
 }
-
-const ErrKeyNotFound = "key not found"
-
-func IsErrKeyNotFound(err error) bool {
-	return ErrKeyNotFound == err.Error()
-}
