@@ -46,6 +46,14 @@ func Test_Store(t *testing.T) {
 		assert.ErrorIs(t, err, NewInvalidKey(key))
 	})
 
+	t.Run("store onto existing directory", func(t *testing.T) {
+		key := "dir"
+		dir := path.Join(pico.opt.RootDir, key)
+		require.NoError(t, os.Mkdir(dir, 0744))
+		err := pico.Store("dir", bytes)
+		assert.ErrorIs(t, err, NewKeyConflict(key, dir))
+	})
+
 }
 
 func Test_Load(t *testing.T) {
@@ -64,8 +72,12 @@ func Test_Load(t *testing.T) {
 		assert.ErrorIs(t, err, NewInvalidKey(key))
 	})
 
-	t.Run("read key which points to a directory", func(t *testing.T) {
-		// TODO
+	t.Run("read key pointing to a directory", func(t *testing.T) {
+		key := "dir"
+		dir := path.Join(pico.opt.RootDir, key)
+		require.NoError(t, os.MkdirAll(dir, 0744))
+		_, err := pico.Load(key)
+		assert.ErrorIs(t, err, NewKeyConflict(key, dir))
 	})
 
 }
@@ -84,8 +96,9 @@ func Test_Delete(t *testing.T) {
 	})
 
 	t.Run("delete missing key", func(t *testing.T) {
-		err := pico.Delete("missing")
-		assert.NoError(t, err)
+		key := "missing"
+		err := pico.Delete(key)
+		assert.ErrorIs(t, err, NewKeyNotFound(key))
 	})
 
 }
