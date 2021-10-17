@@ -13,7 +13,7 @@ import (
 // and then stores them using the file system
 func (p *PicoDb) writeWithCache(key string, data interface{}) error {
 	p.cache.Store(key, data)
-	if p.opt.Watcher {
+	if p.watcherEnabled {
 		p.broadcast(key)
 	}
 	return p.writeInternal(key, data)

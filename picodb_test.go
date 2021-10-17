@@ -4,6 +4,7 @@ import (
 	"io/fs"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -66,11 +67,9 @@ func Test_Readback(t *testing.T) {
 	require.NoError(t, err)
 	defer os.RemoveAll(path)
 
-	dir := path + "/readback"
-
 	t.Run("standard storage", func(t *testing.T) {
 		p, err := New(&PicoDbOptions{
-			RootPath: dir,
+			RootPath: path,
 		})
 		require.NoError(t, err)
 
@@ -85,7 +84,7 @@ func Test_Readback(t *testing.T) {
 
 	t.Run("compressed storage", func(t *testing.T) {
 		p, err := New(&PicoDbOptions{
-			RootPath:    dir,
+			RootPath:    path,
 			Compression: true,
 		})
 		require.NoError(t, err)
@@ -102,14 +101,12 @@ func Test_Readback(t *testing.T) {
 }
 
 func Test_MissingKey(t *testing.T) {
-
 	path, err := os.MkdirTemp(os.TempDir(), "pdb")
 	require.NoError(t, err)
 	defer os.RemoveAll(path)
 
-	dir := path + "/missing"
 	p, err := New(&PicoDbOptions{
-		RootPath: dir,
+		RootPath: path,
 	})
 	require.NoError(t, err)
 
@@ -129,9 +126,8 @@ func Test_Cache(t *testing.T) {
 	require.NoError(t, err)
 	defer os.RemoveAll(path)
 
-	dir := path + "/cache"
 	p, err := New(&PicoDbOptions{
-		RootPath: dir,
+		RootPath: path,
 		Caching:  true,
 	})
 	require.NoError(t, err)
@@ -169,6 +165,76 @@ func Test_Cache(t *testing.T) {
 		assert.Equal(t, data, actual)
 	})
 
+}
+
+func Test_Mutate(t *testing.T) {
+	path, err := os.MkdirTemp(os.TempDir(), "pdb")
+	require.NoError(t, err)
+	defer os.RemoveAll(path)
+
+	p, err := New(&PicoDbOptions{
+		RootPath: path,
+	})
+	require.NoError(t, err)
+
+	data := testData{
+		Num:  5,
+		Str:  "test",
+		Flag: true,
+	}
+
+	p.Write("test", data)
+	p.Mutate("test", &data, func(i interface{}) {
+		d := i.(*testData)
+		d.Num = 10
+		d.Str = "mutated"
+		d.Flag = true
+	})
+
+	// verify attributes are mutated in memory
+	assert.Equal(t, data.Num, 10)
+	assert.Equal(t, data.Str, "mutated")
+	assert.Equal(t, data.Flag, true)
+
+	// verify persisted data is mutated
+	var stored testData
+	err = p.Read("test", &stored)
+	require.NoError(t, err)
+	assert.Equal(t, stored, data)
+}
+
+func Test_Watcher(t *testing.T) {
+	path, err := os.MkdirTemp(os.TempDir(), "pdb")
+	require.NoError(t, err)
+	defer os.RemoveAll(path)
+
+	// create two picodb instances pointing to the same path
+
+	p1, err := New(&PicoDbOptions{
+		RootPath: path,
+		Caching:  true,
+	})
+	require.NoError(t, err)
+	_, err = p1.EnableWatcher(50 * time.Millisecond)
+	defer p1.DisableWatcher()
+	require.NoError(t, err)
+
+	p2, err := New(&PicoDbOptions{
+		RootPath: path,
+		Caching:  true,
+	})
+	require.NoError(t, err)
+	_, err = p2.EnableWatcher(time.Hour) // frequency doesn't matter for this one
+	defer p2.DisableWatcher()
+	require.NoError(t, err)
+
+	p1.Write("test", "foo")
+	p2.Write("test", "bar")
+
+	time.Sleep(100 * time.Millisecond) // wait for p1 watcher cycle
+
+	_, ok := p1.cache.Load("test")
+	assert.False(t, ok) // the key in p1.cache should be invalidated
 }
 
 func assertReadback(t *testing.T, p *PicoDb, data interface{}) {

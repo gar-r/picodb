@@ -15,20 +15,20 @@ import (
 // PicoDb is always initialized with a root path, which will
 // contain the data.
 type PicoDb struct {
-	opt   *PicoDbOptions
-	cache *sync.Map
-	id    uuid.UUID
+	opt            *PicoDbOptions
+	cache          *sync.Map
+	id             uuid.UUID
+	ticker         *time.Ticker
+	watcherEnabled bool
 }
 
 // PicoDbOptions contains options which are passed on to the
 // New function to create a PicoDb instace.
 type PicoDbOptions struct {
-	RootPath    string        // root directory
-	FileMode    os.FileMode   // create chmod for the root path, defaults to 0700
-	Compression bool          // enable compression at rest
-	Caching     bool          // enable in-memory cache
-	Watcher     bool          // enable watcher (ignored unless cache is enabled)
-	WatcherFreq time.Duration // how frequently the watcher checks for updates
+	RootPath    string      // root directory
+	FileMode    os.FileMode // create chmod for the root path, defaults to 0700
+	Compression bool        // enable compression at rest
+	Caching     bool        // enable in-memory cache
 }
 
 func New(options *PicoDbOptions) (*PicoDb, error) {
@@ -39,7 +39,6 @@ func New(options *PicoDbOptions) (*PicoDb, error) {
 	if err != nil {
 		return nil, err
 	}
-	// TODO: init watcher
 	return &PicoDb{
 		opt:   options,
 		cache: &sync.Map{},
@@ -48,6 +47,9 @@ func New(options *PicoDbOptions) (*PicoDb, error) {
 }
 
 func (p *PicoDb) Write(key string, data interface{}) error {
+	if p.isKeyReserved(key) {
+		return errors.New(ErrReservedKey)
+	}
 	if p.opt.Caching {
 		return p.writeWithCache(key, data)
 	}
@@ -68,6 +70,25 @@ func (p *PicoDb) Read(key string, data interface{}) error {
 	return p.readInternal(key, data)
 }
 
+type Mutator func(interface{})
+
+func (p *PicoDb) Mutate(key string, data interface{}, fn Mutator) error {
+	if p.isKeyReserved(key) {
+		return errors.New(ErrReservedKey)
+	}
+	ok, err := p.Exists(key)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return errors.New(ErrNoExist)
+	}
+	if p.opt.Caching {
+		return p.mutateWithCache(key, data, fn)
+	}
+	return p.mutateInternal(key, data, fn)
+}
+
 func (p *PicoDb) Exists(key string) (bool, error) {
 	if p.opt.Caching {
 		return p.existsWithCache(key)
@@ -76,14 +97,22 @@ func (p *PicoDb) Exists(key string) (bool, error) {
 }
 
 func (p *PicoDb) Delete(key string) error {
+	if p.isKeyReserved(key) {
+		return errors.New(ErrReservedKey)
+	}
 	if p.opt.Caching {
 		return p.deleteWithCache(key)
 	}
 	return p.deleteInternal(key)
 }
 
-const ErrNoExist = "key does not exist"
+func (p *PicoDb) EnableWatcher(freq time.Duration) (chan error, error) {
+	if !p.opt.Caching {
+		return nil, errors.New(ErrCacheDisabled)
+	}
+	return p.enableWatcherInternal(freq)
+}
 
-func IsNoExist(err error) bool {
-	return err.Error() == ErrNoExist
+func (p *PicoDb) DisableWatcher() {
+	p.disableWatcherInternal()
 }
