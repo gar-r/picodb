@@ -1,6 +1,9 @@
 package picodb
 
 import (
+	"errors"
+	"os"
+	"path"
 	"sync"
 
 	"github.com/google/uuid"
@@ -20,17 +23,21 @@ type PicoDb struct {
 // PicoDbOptions contains options which are passed on to the
 // New function to create a PicoDb instace.
 type PicoDbOptions struct {
-	RootDir     string // root directory
-	Compression bool   // enable compression at rest
-	Caching     bool   // enable in-memory cache
+	RootDir     string      // root directory
+	Compression bool        // enable compression at rest
+	Caching     bool        // enable in-memory cache
+	FileMode    os.FileMode // file mode used to create files
+	DirMode     os.FileMode // file mode used to create directories
 }
 
 // Defaults returns a PicoDbOptions with reasonable defaults.
 func Defaults() *PicoDbOptions {
 	return &PicoDbOptions{
-		RootDir:     "picodb",
+		RootDir:     "./picodb",
 		Compression: false,
 		Caching:     false,
+		FileMode:    0644,
+		DirMode:     0744,
 	}
 }
 
@@ -41,4 +48,40 @@ func New(options *PicoDbOptions) *PicoDb {
 		cache: &sync.Map{},
 		id:    uuid.New(),
 	}
+}
+
+// Store a key with the supplied bytes as value.
+func (p *PicoDb) Store(key string, val []byte) error {
+	name := p.path(key)
+	dir := path.Dir(name)
+	if err := os.MkdirAll(dir, p.opt.DirMode); err != nil {
+		return err
+	}
+	return os.WriteFile(name, val, p.opt.FileMode)
+}
+
+// Load data for a given key.
+func (p *PicoDb) Load(key string) ([]byte, error) {
+	name := p.path(key)
+	fi, err := os.Stat(name)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, errors.New(ErrKeyNotFound)
+		}
+		return nil, err
+	}
+	if fi.IsDir() {
+		return nil, errors.New(ErrKeyNotFound)
+	}
+	return os.ReadFile(name)
+}
+
+func (p *PicoDb) path(key string) string {
+	return path.Join(p.opt.RootDir, key)
+}
+
+const ErrKeyNotFound = "key not found"
+
+func IsErrKeyNotFound(err error) bool {
+	return ErrKeyNotFound == err.Error()
 }
