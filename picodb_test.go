@@ -2,6 +2,7 @@ package picodb
 
 import (
 	"os"
+	"path"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -27,11 +28,10 @@ func Test_New(t *testing.T) {
 }
 
 func Test_Store(t *testing.T) {
-
 	pico := New(Defaults())
-	bytes := []byte{1, 3, 5, 7}
-
 	defer os.RemoveAll(pico.opt.RootDir)
+
+	bytes := []byte{1, 3, 5, 7}
 
 	t.Run("read back stored value", func(t *testing.T) {
 		require.NoError(t, pico.Store("readwrite", bytes))
@@ -40,35 +40,59 @@ func Test_Store(t *testing.T) {
 		assert.Equal(t, bytes, actual)
 	})
 
-	t.Run("store to sub-key", func(t *testing.T) {
-		require.NoError(t, pico.Store("sub/dir", bytes))
-		actual, err := pico.Load("sub/dir")
-		require.NoError(t, err)
-		assert.Equal(t, bytes, actual)
+	t.Run("store an invalid key", func(t *testing.T) {
+		key := path.Join("foo", "bar")
+		err := pico.Store(key, bytes)
+		assert.ErrorIs(t, err, NewInvalidKey(key))
 	})
 
 }
 
-func Test_Read(t *testing.T) {
+func Test_Load(t *testing.T) {
 	pico := New(Defaults())
+	defer os.RemoveAll(pico.opt.RootDir)
 
 	t.Run("read missing key", func(t *testing.T) {
-		_, err := pico.Load("missing")
-		assert.Error(t, err)
-		assert.True(t, IsErrKeyNotFound(err))
+		key := "foo"
+		_, err := pico.Load(key)
+		assert.ErrorIs(t, err, NewKeyNotFound(key))
 	})
 
 	t.Run("read invalid key", func(t *testing.T) {
-		require.NoError(t, pico.Store("foo/bar", []byte{}))
-		_, err := pico.Load("foo")
-		assert.Error(t, err)
-		assert.True(t, IsErrKeyNotFound(err))
+		key := path.Join("foo", "bar")
+		_, err := pico.Load(key)
+		assert.ErrorIs(t, err, NewInvalidKey(key))
+	})
+
+	t.Run("read key which points to a directory", func(t *testing.T) {
+		// TODO
+	})
+
+}
+
+func Test_Delete(t *testing.T) {
+	pico := New(Defaults())
+	defer os.RemoveAll(pico.opt.RootDir)
+
+	t.Run("delete key", func(t *testing.T) {
+		key := "foo"
+		require.NoError(t, pico.Store(key, []byte("bar")))
+		err := pico.Delete(key)
+		assert.NoError(t, err)
+		_, err = pico.Load(key)
+		assert.ErrorIs(t, err, NewKeyNotFound(key))
+	})
+
+	t.Run("delete missing key", func(t *testing.T) {
+		err := pico.Delete("missing")
+		assert.NoError(t, err)
 	})
 
 }
 
 func Test_Lock(t *testing.T) {
 	pico := New(Defaults())
+	defer os.RemoveAll(pico.opt.RootDir)
 	bytes := []byte{1, 3, 5, 7}
 
 	t.Run("read back stored value", func(t *testing.T) {
@@ -80,7 +104,7 @@ func Test_Lock(t *testing.T) {
 
 	t.Run("read with lock", func(t *testing.T) {
 		require.NoError(t, pico.Store("rlock", bytes))
-		actual, err := pico.LoadWithLock("lock")
+		actual, err := pico.LoadWithLock("rlock")
 		require.NoError(t, err)
 		assert.Equal(t, bytes, actual)
 	})

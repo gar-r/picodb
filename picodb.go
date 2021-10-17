@@ -1,9 +1,9 @@
 package picodb
 
 import (
-	"errors"
 	"os"
 	"path"
+	"strings"
 	"sync"
 
 	"github.com/google/uuid"
@@ -50,8 +50,11 @@ func New(options *PicoDbOptions) *PicoDb {
 	}
 }
 
-// Store a key with the supplied bytes as value.
+// Store a key.
 func (p *PicoDb) Store(key string, val []byte) error {
+	if err := p.check(key); err != nil {
+		return err
+	}
 	name := p.path(key)
 	dir := path.Dir(name)
 	if err := os.MkdirAll(dir, p.opt.DirMode); err != nil {
@@ -60,21 +63,48 @@ func (p *PicoDb) Store(key string, val []byte) error {
 	return os.WriteFile(name, val, p.opt.FileMode)
 }
 
-// Load data for a given key.
+// Load a key.
 // If the key is missing, an error is returned.
 func (p *PicoDb) Load(key string) ([]byte, error) {
+	if err := p.check(key); err != nil {
+		return nil, err
+	}
 	name := p.path(key)
 	fi, err := os.Stat(name)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, errors.New(ErrKeyNotFound)
+			return nil, NewKeyNotFound(key)
 		}
 		return nil, err
 	}
 	if fi.IsDir() {
-		return nil, errors.New(ErrKeyNotFound)
+		return nil, NewKeyNotFound(key)
 	}
 	return os.ReadFile(name)
+}
+
+// Delete a key.
+// If the key is missing, it doesn't do anything.
+func (p *PicoDb) Delete(key string) error {
+	if err := p.check(key); err != nil {
+		return err
+	}
+	name := p.path(key)
+	_, err := os.Stat(name)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	return os.Remove(name)
+}
+
+func (p *PicoDb) check(key string) error {
+	if strings.ContainsRune(key, os.PathSeparator) {
+		return NewInvalidKey(key)
+	}
+	return nil
 }
 
 func (p *PicoDb) path(key string) string {

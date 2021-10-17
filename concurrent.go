@@ -1,6 +1,8 @@
 package picodb
 
-import "github.com/gofrs/flock"
+import (
+	"github.com/gofrs/flock"
+)
 
 // StoreWithLock stores a key with the supplied bytes as value.
 // This function is safe to use in concurrent scenarios, including
