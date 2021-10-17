@@ -61,6 +61,7 @@ func (p *PicoDb) Store(key string, val []byte) error {
 }
 
 // Load data for a given key.
+// If the key is missing, an error is returned.
 func (p *PicoDb) Load(key string) ([]byte, error) {
 	name := p.path(key)
 	fi, err := os.Stat(name)

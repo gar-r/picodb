@@ -33,16 +33,16 @@ func Test_Store(t *testing.T) {
 
 	defer os.RemoveAll(pico.opt.RootDir)
 
-	t.Run("store to sub-key", func(t *testing.T) {
-		require.NoError(t, pico.Store("sub/dir", bytes))
-		actual, err := pico.Load("sub/dir")
+	t.Run("read back stored value", func(t *testing.T) {
+		require.NoError(t, pico.Store("readwrite", bytes))
+		actual, err := pico.Load("readwrite")
 		require.NoError(t, err)
 		assert.Equal(t, bytes, actual)
 	})
 
-	t.Run("read back stored value", func(t *testing.T) {
-		require.NoError(t, pico.Store("readwrite", bytes))
-		actual, err := pico.Load("readwrite")
+	t.Run("store to sub-key", func(t *testing.T) {
+		require.NoError(t, pico.Store("sub/dir", bytes))
+		actual, err := pico.Load("sub/dir")
 		require.NoError(t, err)
 		assert.Equal(t, bytes, actual)
 	})
@@ -65,4 +65,23 @@ func Test_Read(t *testing.T) {
 		assert.True(t, IsErrKeyNotFound(err))
 	})
 
+}
+
+func Test_Lock(t *testing.T) {
+	pico := New(Defaults())
+	bytes := []byte{1, 3, 5, 7}
+
+	t.Run("read back stored value", func(t *testing.T) {
+		require.NoError(t, pico.StoreWithLock("lock", bytes))
+		actual, err := pico.Load("lock")
+		require.NoError(t, err)
+		assert.Equal(t, bytes, actual)
+	})
+
+	t.Run("read with lock", func(t *testing.T) {
+		require.NoError(t, pico.Store("rlock", bytes))
+		actual, err := pico.LoadWithLock("lock")
+		require.NoError(t, err)
+		assert.Equal(t, bytes, actual)
+	})
 }
