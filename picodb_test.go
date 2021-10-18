@@ -135,3 +135,22 @@ func Test_Lock(t *testing.T) {
 	})
 
 }
+
+func Test_Strings(t *testing.T) {
+	pico := New(Defaults())
+	defer os.RemoveAll(pico.opt.RootDir)
+
+	t.Run("store and load string value", func(t *testing.T) {
+		s := "test"
+		require.NoError(t, pico.StoreString("foo", s))
+		r, err := pico.LoadString("foo")
+		assert.NoError(t, err)
+		assert.Equal(t, s, r)
+	})
+
+	t.Run("load string error", func(t *testing.T) {
+		key := path.Join("foo", "bar")
+		_, err := pico.LoadString(key)
+		assert.Error(t, err)
+	})
+}

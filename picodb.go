@@ -57,6 +57,11 @@ func (p *PicoDb) Store(key string, val []byte) error {
 	return os.WriteFile(path, val, p.opt.FileMode)
 }
 
+// Store a key with a string value.
+func (p *PicoDb) StoreString(key, val string) error {
+	return p.Store(key, []byte(val))
+}
+
 // Load a key.
 // If the key is missing, an error is returned.
 func (p *PicoDb) Load(key string) ([]byte, error) {
@@ -65,6 +70,16 @@ func (p *PicoDb) Load(key string) ([]byte, error) {
 	}
 	path := p.path(key)
 	return os.ReadFile(path)
+}
+
+// Load a key with a string value.
+// If the key is missing, and error is returned.
+func (p *PicoDb) LoadString(key string) (string, error) {
+	b, err := p.Load(key)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
 }
 
 // Delete a key.
