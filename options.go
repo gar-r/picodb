@@ -12,7 +12,7 @@ type PicoDbOptions struct {
 	DirMode     os.FileMode // file mode used to create directories
 }
 
-// Defaults returns a PicoDbOptions with reasonable defaults.
+// Defaults returns a PicoDbOptions with sensible defaults.
 func Defaults() *PicoDbOptions {
 	return &PicoDbOptions{
 		RootDir:     "./picodb",

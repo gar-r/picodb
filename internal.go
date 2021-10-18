@@ -14,7 +14,7 @@ func (p *PicoDb) ensureStorable(key string) error {
 	if !p.legal(key) {
 		return NewInvalidKey(key)
 	}
-	return p.stat(key, false)
+	return nil
 }
 
 // ensure the given key is valid for reading
@@ -22,28 +22,18 @@ func (p *PicoDb) ensureLoadable(key string) error {
 	if !p.legal(key) {
 		return NewInvalidKey(key)
 	}
-	return p.stat(key, true)
+	return p.stat(key)
 }
 
-// stats the path associated with the key, and ensures
-// it is not a directory.
-// In case the path is not found, the mustExist flag
-// decides if an error is reported or not.
-func (p *PicoDb) stat(key string, mustExist bool) error {
+// stats the path associated with the key
+func (p *PicoDb) stat(key string) error {
 	path := p.path(key)
-	fi, err := os.Stat(path)
+	_, err := os.Stat(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			if mustExist {
-				return NewKeyNotFound(key)
-			} else {
-				return nil
-			}
+			return NewKeyNotFound(key)
 		}
 		return err
-	}
-	if fi.IsDir() {
-		return NewKeyConflict(key, path)
 	}
 	return nil
 }

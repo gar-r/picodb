@@ -46,14 +46,6 @@ func Test_Store(t *testing.T) {
 		assert.ErrorIs(t, err, NewInvalidKey(key))
 	})
 
-	t.Run("store onto existing directory", func(t *testing.T) {
-		key := "dir"
-		dir := path.Join(pico.opt.RootDir, key)
-		require.NoError(t, os.Mkdir(dir, 0744))
-		err := pico.Store("dir", bytes)
-		assert.ErrorIs(t, err, NewKeyConflict(key, dir))
-	})
-
 }
 
 func Test_Load(t *testing.T) {
@@ -70,14 +62,6 @@ func Test_Load(t *testing.T) {
 		key := path.Join("foo", "bar")
 		_, err := pico.Load(key)
 		assert.ErrorIs(t, err, NewInvalidKey(key))
-	})
-
-	t.Run("read key pointing to a directory", func(t *testing.T) {
-		key := "dir"
-		dir := path.Join(pico.opt.RootDir, key)
-		require.NoError(t, os.MkdirAll(dir, 0744))
-		_, err := pico.Load(key)
-		assert.ErrorIs(t, err, NewKeyConflict(key, dir))
 	})
 
 }
@@ -121,4 +105,25 @@ func Test_Strings(t *testing.T) {
 		assert.Error(t, err)
 	})
 
+}
+
+func Test_Caching(t *testing.T) {
+	pico := New(Defaults().WithCaching())
+	defer os.RemoveAll(pico.opt.RootDir)
+
+	t.Run("store value with cache", func(t *testing.T) {
+		key := "foo"
+		require.NoError(t, pico.StoreString(key, "test"))
+		val, ok := pico.cache.Load(key)
+		assert.True(t, ok)
+		assert.Equal(t, "test", string(val.([]byte)))
+	})
+
+	t.Run("load value from cache", func(t *testing.T) {
+		key := "bar"
+		pico.cache.Store(key, []byte("test"))
+		val, err := pico.LoadString(key)
+		assert.NoError(t, err)
+		assert.Equal(t, "test", val)
+	})
 }

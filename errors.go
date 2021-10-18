@@ -29,19 +29,3 @@ func NewInvalidKey(key string) InvalidKey {
 func (e InvalidKey) Error() string {
 	return fmt.Sprintf("invalid key: %s", e.key)
 }
-
-type KeyConflict struct {
-	key string
-	dir string
-}
-
-func NewKeyConflict(key, dir string) KeyConflict {
-	return KeyConflict{
-		key: key,
-		dir: dir,
-	}
-}
-
-func (e KeyConflict) Error() string {
-	return fmt.Sprintf("conflicts between key: %s and directory: %s", e.key, e.dir)
-}
