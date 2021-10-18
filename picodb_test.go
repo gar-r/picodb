@@ -121,4 +121,17 @@ func Test_Lock(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, bytes, actual)
 	})
+
+	t.Run("store invalid key", func(t *testing.T) {
+		key := path.Join("foo", "bar")
+		err := pico.StoreWithLock(key, []byte("test"))
+		assert.ErrorIs(t, err, NewInvalidKey(key))
+	})
+
+	t.Run("load with invalid key", func(t *testing.T) {
+		key := path.Join("foo", "bar")
+		_, err := pico.LoadWithLock(key)
+		assert.ErrorIs(t, err, NewInvalidKey(key))
+	})
+
 }
