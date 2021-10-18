@@ -12,7 +12,7 @@ func (p *PicoDb) ensureStorable(key string) error {
 		return err
 	}
 	if !p.legal(key) {
-		return NewInvalidKey(key)
+		return NewInvalidName(key)
 	}
 	return nil
 }
@@ -20,7 +20,7 @@ func (p *PicoDb) ensureStorable(key string) error {
 // ensure the given key is valid for reading
 func (p *PicoDb) ensureLoadable(key string) error {
 	if !p.legal(key) {
-		return NewInvalidKey(key)
+		return NewInvalidName(key)
 	}
 	return p.stat(key)
 }

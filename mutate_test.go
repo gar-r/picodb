@@ -37,7 +37,7 @@ func Test_Mutate(t *testing.T) {
 		err := pico.Mutate(key, func(b []byte) []byte {
 			return []byte{}
 		})
-		assert.ErrorIs(t, err, NewInvalidKey(key))
+		assert.ErrorIs(t, err, NewInvalidName(key))
 	})
 
 	t.Run("mutate invalid fn", func(t *testing.T) {

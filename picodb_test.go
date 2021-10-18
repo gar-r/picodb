@@ -43,7 +43,7 @@ func Test_Store(t *testing.T) {
 	t.Run("store an invalid key", func(t *testing.T) {
 		key := path.Join("foo", "bar")
 		err := pico.Store(key, bytes)
-		assert.ErrorIs(t, err, NewInvalidKey(key))
+		assert.ErrorIs(t, err, NewInvalidName(key))
 	})
 
 }
@@ -61,7 +61,7 @@ func Test_Load(t *testing.T) {
 	t.Run("read invalid key", func(t *testing.T) {
 		key := path.Join("foo", "bar")
 		_, err := pico.Load(key)
-		assert.ErrorIs(t, err, NewInvalidKey(key))
+		assert.ErrorIs(t, err, NewInvalidName(key))
 	})
 
 }

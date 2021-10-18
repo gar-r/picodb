@@ -31,13 +31,13 @@ func Test_Lock(t *testing.T) {
 	t.Run("store invalid key", func(t *testing.T) {
 		key := path.Join("foo", "bar")
 		err := pico.StoreWithLock(key, []byte("test"))
-		assert.ErrorIs(t, err, NewInvalidKey(key))
+		assert.ErrorIs(t, err, NewInvalidName(key))
 	})
 
 	t.Run("load with invalid key", func(t *testing.T) {
 		key := path.Join("foo", "bar")
 		_, err := pico.LoadWithLock(key)
-		assert.ErrorIs(t, err, NewInvalidKey(key))
+		assert.ErrorIs(t, err, NewInvalidName(key))
 	})
 
 	t.Run("store and load string value with locks", func(t *testing.T) {

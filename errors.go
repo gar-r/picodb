@@ -16,16 +16,16 @@ func (e KeyNotFound) Error() string {
 	return fmt.Sprintf("key not found: %s", e.key)
 }
 
-type InvalidKey struct {
-	key string
+type InvalidName struct {
+	name string
 }
 
-func NewInvalidKey(key string) InvalidKey {
-	return InvalidKey{
-		key: key,
+func NewInvalidName(name string) InvalidName {
+	return InvalidName{
+		name: name,
 	}
 }
 
-func (e InvalidKey) Error() string {
-	return fmt.Sprintf("invalid key: %s", e.key)
+func (e InvalidName) Error() string {
+	return fmt.Sprintf("invalid name: %s", e.name)
 }

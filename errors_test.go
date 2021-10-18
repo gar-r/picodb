@@ -21,17 +21,17 @@ func Test_KeyNotFound(t *testing.T) {
 
 }
 
-func Test_InvalidKey(t *testing.T) {
+func Test_InvalidName(t *testing.T) {
 
 	t.Run("equality", func(t *testing.T) {
-		e1 := NewInvalidKey("test")
-		e2 := NewInvalidKey("test")
+		e1 := NewInvalidName("test")
+		e2 := NewInvalidName("test")
 		assert.ErrorIs(t, e1, e2)
 	})
 
 	t.Run("error message", func(t *testing.T) {
-		e := NewInvalidKey("key")
-		assert.Contains(t, e.Error(), "key")
+		e := NewInvalidName("test")
+		assert.Contains(t, e.Error(), "test")
 	})
 
 }
