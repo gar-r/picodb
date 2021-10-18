@@ -7,7 +7,7 @@ import (
 )
 
 // ensure the given key is valid for writing
-func (p *PicoDb) checkWritable(key string) error {
+func (p *PicoDb) ensureStorable(key string) error {
 	if err := p.mkroot(); err != nil {
 		return err
 	}
@@ -18,7 +18,7 @@ func (p *PicoDb) checkWritable(key string) error {
 }
 
 // ensure the given key is valid for reading
-func (p *PicoDb) checkReadable(key string) error {
+func (p *PicoDb) ensureLoadable(key string) error {
 	if !p.legal(key) {
 		return NewInvalidKey(key)
 	}

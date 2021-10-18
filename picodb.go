@@ -50,7 +50,7 @@ func New(options *PicoDbOptions) *PicoDb {
 
 // Store a key.
 func (p *PicoDb) Store(key string, val []byte) error {
-	if err := p.checkWritable(key); err != nil {
+	if err := p.ensureStorable(key); err != nil {
 		return err
 	}
 	path := p.path(key)
@@ -65,7 +65,7 @@ func (p *PicoDb) StoreString(key, val string) error {
 // Load a key.
 // If the key is missing, an error is returned.
 func (p *PicoDb) Load(key string) ([]byte, error) {
-	if err := p.checkReadable(key); err != nil {
+	if err := p.ensureLoadable(key); err != nil {
 		return nil, err
 	}
 	path := p.path(key)
@@ -85,7 +85,7 @@ func (p *PicoDb) LoadString(key string) (string, error) {
 // Delete a key.
 // If the key is missing, an error is returned.
 func (p *PicoDb) Delete(key string) error {
-	if err := p.checkReadable(key); err != nil {
+	if err := p.ensureLoadable(key); err != nil {
 		return err
 	}
 	path := p.path(key)
