@@ -103,39 +103,6 @@ func Test_Delete(t *testing.T) {
 
 }
 
-func Test_Lock(t *testing.T) {
-	pico := New(Defaults())
-	defer os.RemoveAll(pico.opt.RootDir)
-	bytes := []byte{1, 3, 5, 7}
-
-	t.Run("read back stored value", func(t *testing.T) {
-		require.NoError(t, pico.StoreWithLock("lock", bytes))
-		actual, err := pico.Load("lock")
-		require.NoError(t, err)
-		assert.Equal(t, bytes, actual)
-	})
-
-	t.Run("read with lock", func(t *testing.T) {
-		require.NoError(t, pico.Store("rlock", bytes))
-		actual, err := pico.LoadWithLock("rlock")
-		require.NoError(t, err)
-		assert.Equal(t, bytes, actual)
-	})
-
-	t.Run("store invalid key", func(t *testing.T) {
-		key := path.Join("foo", "bar")
-		err := pico.StoreWithLock(key, []byte("test"))
-		assert.ErrorIs(t, err, NewInvalidKey(key))
-	})
-
-	t.Run("load with invalid key", func(t *testing.T) {
-		key := path.Join("foo", "bar")
-		_, err := pico.LoadWithLock(key)
-		assert.ErrorIs(t, err, NewInvalidKey(key))
-	})
-
-}
-
 func Test_Strings(t *testing.T) {
 	pico := New(Defaults())
 	defer os.RemoveAll(pico.opt.RootDir)
@@ -154,60 +121,4 @@ func Test_Strings(t *testing.T) {
 		assert.Error(t, err)
 	})
 
-	t.Run("store and load string value with locks", func(t *testing.T) {
-		s := "test"
-		require.NoError(t, pico.StoreStringWithLock("foo", s))
-		r, err := pico.LoadStringWithLock("foo")
-		assert.NoError(t, err)
-		assert.Equal(t, s, r)
-	})
-}
-
-func Test_Mutate(t *testing.T) {
-	pico := New(Defaults())
-	defer os.RemoveAll(pico.opt.RootDir)
-
-	t.Run("mutate value", func(t *testing.T) {
-		key := "foo"
-		require.NoError(t, pico.Store(key, []byte{1, 2, 3}))
-		err := pico.Mutate(key, func(b []byte) []byte {
-			return append(b, 4)
-		})
-		assert.NoError(t, err)
-		b, err := pico.Load(key)
-		require.NoError(t, err)
-		assert.Equal(t, []byte{1, 2, 3, 4}, b)
-	})
-
-	t.Run("mutate missing key", func(t *testing.T) {
-		key := "missing"
-		err := pico.Mutate(key, func(b []byte) []byte {
-			return []byte{}
-		})
-		assert.ErrorIs(t, err, NewKeyNotFound(key))
-	})
-
-	t.Run("mutate invalid key", func(t *testing.T) {
-		key := "foo/bar"
-		err := pico.Mutate(key, func(b []byte) []byte {
-			return []byte{}
-		})
-		assert.ErrorIs(t, err, NewInvalidKey(key))
-	})
-
-	t.Run("mutate invalid fn", func(t *testing.T) {
-		assert.NoError(t, pico.Mutate("foo", nil))
-	})
-
-	t.Run("mutate string", func(t *testing.T) {
-		key := "bar"
-		require.NoError(t, pico.StoreString(key, "test"))
-		err := pico.MutateString(key, func(s string) string {
-			return s + "123"
-		})
-		assert.NoError(t, err)
-		s, err := pico.LoadString(key)
-		require.NoError(t, err)
-		assert.Equal(t, "test123", s)
-	})
 }
