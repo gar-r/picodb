@@ -12,25 +12,43 @@ import (
 // PicoDb is always initialized with a root path, which will
 // contain the data.
 type PicoDb struct {
-	id    uuid.UUID      // the unique id of this picodb instance
-	opt   *PicoDbOptions // picodb options
-	kvs   kvs            // the key-value store backend
-	cache *sync.Map      // in-memory cache
+	id  uuid.UUID      // the unique id of this picodb instance
+	opt *PicoDbOptions // picodb options
+	kvs kvs            // the key-value store backend
 }
 
 // New returns a new PicoDb instance.
 func New(options *PicoDbOptions) *PicoDb {
 	return &PicoDb{
-		id:    uuid.New(),
-		kvs:   nil,
-		opt:   options,
-		cache: &sync.Map{},
+		id:  uuid.New(),
+		kvs: newKvs(options),
+		opt: options,
+	}
+}
+
+func newKvs(options *PicoDbOptions) kvs {
+	var dirfs = &dirfs{
+		root: options.RootDir,
+		s: &fs{
+			fmode: options.FileMode,
+			dmode: options.DirMode,
+		},
+		locking: options.Locking,
+	}
+	if !options.Caching {
+		return dirfs
+	}
+	return &chain{
+		list: []kvs{
+			&cache{m: &sync.Map{}},
+			dirfs,
+		},
 	}
 }
 
 // Store a key.
 func (p *PicoDb) Store(key string, val []byte) error {
-	return nil
+	return p.kvs.store(key, val)
 }
 
 // Store a key with a string value.
@@ -41,7 +59,7 @@ func (p *PicoDb) StoreString(key, val string) error {
 // Load a key.
 // If the key is missing, an error is returned.
 func (p *PicoDb) Load(key string) ([]byte, error) {
-	return nil, nil
+	return p.kvs.load(key)
 }
 
 // Load a key with a string value.
@@ -57,5 +75,5 @@ func (p *PicoDb) LoadString(key string) (string, error) {
 // Delete a key.
 // If the key is missing, an error is returned.
 func (p *PicoDb) Delete(key string) error {
-	return nil
+	return p.kvs.delete(key)
 }
