@@ -2,16 +2,16 @@ package picodb
 
 import "errors"
 
-// fallback is special kvs which can handle fallback between
+// chain is special kvs which can handle chain between
 // multiple kvs' in case of missing keys
-type fallback struct {
+type chain struct {
 	list []kvs
 }
 
 // store adds the key-value pair to every underlying kvs
 // If any store operation fails, the operation fails
 // and the error is immediately returned.
-func (f *fallback) store(key string, val []byte) error {
+func (f *chain) store(key string, val []byte) error {
 	for _, s := range f.list {
 		if err := s.store(key, val); err != nil {
 			return err
@@ -26,7 +26,7 @@ func (f *fallback) store(key string, val []byte) error {
 // the operation fails and an error is immediately returned.
 // If the key is not present in any of them, a
 // KeyNotFound error is returned.
-func (f *fallback) load(key string) ([]byte, error) {
+func (f *chain) load(key string) ([]byte, error) {
 	notfound := NewKeyNotFound(key)
 	for _, s := range f.list {
 		val, err := s.load(key)
@@ -41,7 +41,20 @@ func (f *fallback) load(key string) ([]byte, error) {
 	return nil, notfound
 }
 
-// delete removes the given key
-func (f *fallback) delete(key string) error {
-
+// delete removes the given key from all underlying kvs
+// If the kvs does not contain the key, it is skipped.
+// In case of an error during delete the operation fails
+// and the error is returned immediately.
+func (f *chain) delete(key string) error {
+	notfound := NewKeyNotFound(key)
+	for _, s := range f.list {
+		err := s.delete(key)
+		if err != nil {
+			if errors.Is(err, notfound) {
+				continue
+			}
+			return err
+		}
+	}
+	return nil
 }
