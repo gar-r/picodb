@@ -22,28 +22,3 @@ func Defaults() *PicoDbOptions {
 		DirMode:     0744,
 	}
 }
-
-func (p *PicoDbOptions) WithRootDir(rootDir string) *PicoDbOptions {
-	p.RootDir = rootDir
-	return p
-}
-
-func (p *PicoDbOptions) WithCompression() *PicoDbOptions {
-	p.Compression = true
-	return p
-}
-
-func (p *PicoDbOptions) WithCaching() *PicoDbOptions {
-	p.Caching = true
-	return p
-}
-
-func (p *PicoDbOptions) WithFileMode(fileMode os.FileMode) *PicoDbOptions {
-	p.FileMode = fileMode
-	return p
-}
-
-func (p *PicoDbOptions) WithDirMode(dirMode os.FileMode) *PicoDbOptions {
-	p.DirMode = dirMode
-	return p
-}

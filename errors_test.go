@@ -24,13 +24,13 @@ func Test_KeyNotFound(t *testing.T) {
 func Test_InvalidName(t *testing.T) {
 
 	t.Run("equality", func(t *testing.T) {
-		e1 := NewInvalidName("test")
-		e2 := NewInvalidName("test")
+		e1 := NewKeyInvalid("test")
+		e2 := NewKeyInvalid("test")
 		assert.ErrorIs(t, e1, e2)
 	})
 
 	t.Run("error message", func(t *testing.T) {
-		e := NewInvalidName("test")
+		e := NewKeyInvalid("test")
 		assert.Contains(t, e.Error(), "test")
 	})
 

@@ -1,7 +1,6 @@
 package picodb
 
 import (
-	"os"
 	"sync"
 
 	"github.com/google/uuid"
@@ -13,32 +12,24 @@ import (
 // PicoDb is always initialized with a root path, which will
 // contain the data.
 type PicoDb struct {
-	opt   *PicoDbOptions
-	cache *sync.Map
-	id    uuid.UUID
+	id    uuid.UUID      // the unique id of this picodb instance
+	opt   *PicoDbOptions // picodb options
+	kvs   kvs            // the key-value store backend
+	cache *sync.Map      // in-memory cache
 }
 
 // New returns a new PicoDb instance.
 func New(options *PicoDbOptions) *PicoDb {
 	return &PicoDb{
+		id:    uuid.New(),
+		kvs:   nil,
 		opt:   options,
 		cache: &sync.Map{},
-		id:    uuid.New(),
 	}
 }
 
 // Store a key.
 func (p *PicoDb) Store(key string, val []byte) error {
-	if err := p.ensureStorable(key); err != nil {
-		return err
-	}
-	path := p.path(key)
-	if err := os.WriteFile(path, val, p.opt.FileMode); err != nil {
-		return err
-	}
-	if p.opt.Caching {
-		p.cache.Store(key, val)
-	}
 	return nil
 }
 
@@ -50,17 +41,7 @@ func (p *PicoDb) StoreString(key, val string) error {
 // Load a key.
 // If the key is missing, an error is returned.
 func (p *PicoDb) Load(key string) ([]byte, error) {
-	if err := p.ensureLoadable(key); err != nil {
-		return nil, err
-	}
-	if p.opt.Caching {
-		val, ok := p.cache.Load(key)
-		if ok {
-			return val.([]byte), nil
-		}
-	}
-	path := p.path(key)
-	return os.ReadFile(path)
+	return nil, nil
 }
 
 // Load a key with a string value.
@@ -76,9 +57,5 @@ func (p *PicoDb) LoadString(key string) (string, error) {
 // Delete a key.
 // If the key is missing, an error is returned.
 func (p *PicoDb) Delete(key string) error {
-	if err := p.ensureLoadable(key); err != nil {
-		return err
-	}
-	path := p.path(key)
-	return os.Remove(path)
+	return nil
 }

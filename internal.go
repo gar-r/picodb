@@ -1,54 +1,23 @@
 package picodb
 
-import (
-	"os"
-	"path"
-	"strings"
-)
-
-// ensure the given key is valid for writing
-func (p *PicoDb) ensureStorable(key string) error {
-	if err := p.mkroot(); err != nil {
-		return err
-	}
-	if !p.legal(key) {
-		return NewInvalidName(key)
-	}
-	return nil
+// storage represents a generic interface which can read and write bytes based on a name.
+type storage interface {
+	write(string, []byte) error  // write bytes to a given name
+	read(string) ([]byte, error) // read bytes from a given name
+	remove(string) error         // delete a given name
+	mkdir(string) error          // make directory with the given name
+	getl(string) lock            // get a lock for the given name
 }
 
-// ensure the given key is valid for reading
-func (p *PicoDb) ensureLoadable(key string) error {
-	if !p.legal(key) {
-		return NewInvalidName(key)
-	}
-	return p.stat(key)
+// kvs represents a basic key-value store
+type kvs interface {
+	store(string, []byte) error  // store a key-value pair
+	load(string) ([]byte, error) // load a key
+	delete(string) error         // delete a key
 }
 
-// stats the path associated with the key
-func (p *PicoDb) stat(key string) error {
-	path := p.path(key)
-	_, err := os.Stat(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return NewKeyNotFound(key)
-		}
-		return err
-	}
-	return nil
-}
-
-// check if the given key only contains legal characters
-func (p *PicoDb) legal(key string) bool {
-	return !strings.ContainsRune(key, os.PathSeparator)
-}
-
-// create the root dir if it does not exist
-func (p *PicoDb) mkroot() error {
-	return os.MkdirAll(p.opt.RootDir, p.opt.DirMode)
-}
-
-// return the data path associated with the given key
-func (p *PicoDb) path(key string) string {
-	return path.Join(p.opt.RootDir, key)
+// lock represents a lock on a given resource
+type lock interface {
+	Lock() error   // lock the resource
+	Unlock() error // unlock the resource
 }
