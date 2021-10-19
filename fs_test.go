@@ -1,6 +1,7 @@
 package picodb
 
 import (
+	"errors"
 	"os"
 	"path"
 	"testing"
@@ -91,6 +92,86 @@ func TestFs(t *testing.T) {
 	t.Run("getl", func(t *testing.T) {
 		l := fs.getl("foo")
 		assert.NotNil(t, l)
+	})
+
+}
+
+func Test_Compression(t *testing.T) {
+
+	testFs := &testFs{}
+	fs := &fsc{s: testFs}
+
+	testErr := errors.New("test")
+
+	t.Run("write compressed bytes", func(t *testing.T) {
+
+		name := "foo"
+		val := []byte{1, 2, 3, 4, 5}
+
+		testFs.reset()
+		testFs.writeResult = func(s string, b []byte) error {
+			assert.Equal(t, name, s)
+			assert.Greater(t, len(b), 0)
+			return nil
+		}
+
+		err := fs.write(name, val)
+		assert.NoError(t, err)
+	})
+
+	t.Run("write error", func(t *testing.T) {
+
+		testFs.reset()
+		testFs.writeResult = func(s string, b []byte) error {
+			return testErr
+		}
+
+		err := fs.write("foo", nil)
+		assert.ErrorIs(t, err, testErr)
+	})
+
+	t.Run("read compressed bytes", func(t *testing.T) {
+
+		name := "foo"
+		val := []byte("this is a test")
+
+		var cap []byte
+
+		testFs.reset()
+		testFs.writeVerify = func(s string, b []byte) {
+			cap = b // capture compressed bytes
+		}
+		testFs.readResult = func(s string) ([]byte, error) {
+			return cap, nil
+		}
+
+		require.NoError(t, fs.write(name, val))
+		v, err := fs.read(name)
+
+		assert.NoError(t, err)
+		assert.Equal(t, val, v)
+	})
+
+	t.Run("test proxied calls", func(t *testing.T) {
+
+		name := "foo"
+
+		testFs.reset()
+		testFs.removeVerify = func(s string) {
+			assert.Equal(t, name, s)
+		}
+		testFs.mkdirVerify = func(s string) {
+			assert.Equal(t, name, s)
+		}
+		testFs.getlResult = func(s string) lock {
+			assert.Equal(t, name, s)
+			return nil
+		}
+
+		assert.NoError(t, fs.remove(name))
+		assert.NoError(t, fs.mkdir(name))
+		assert.Nil(t, fs.getl(name))
+
 	})
 
 }

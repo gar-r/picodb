@@ -1,6 +1,9 @@
 package picodb
 
 import (
+	"bytes"
+	"compress/gzip"
+	"io/ioutil"
 	"os"
 
 	"github.com/gofrs/flock"
@@ -35,4 +38,65 @@ func (f *fs) mkdir(name string) error {
 // getl creates and returns a file-lock for the given name
 func (f *fs) getl(name string) lock {
 	return flock.New(name)
+}
+
+// fsc is a storage implementation storing compressed bytes using the file system
+type fsc struct {
+	s storage
+}
+
+// write compressed bytes to a file indicated by name.
+func (f *fsc) write(name string, val []byte) error {
+	b, err := f.compress(val)
+	if err != nil {
+		return err
+	}
+	return f.s.write(name, b)
+}
+
+func (f *fsc) compress(val []byte) ([]byte, error) {
+	var buf bytes.Buffer
+	z := gzip.NewWriter(&buf)
+	_, err := z.Write(val)
+	if err != nil {
+		return nil, err
+	}
+	err = z.Close()
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+// read and uncompress bytes from a file indicated by name.
+func (f *fsc) read(name string) ([]byte, error) {
+	b, err := f.s.read(name)
+	if err != nil {
+		return nil, err
+	}
+	return f.uncompress(b)
+}
+
+func (f *fsc) uncompress(val []byte) ([]byte, error) {
+	z, err := gzip.NewReader(bytes.NewReader(val))
+	if err != nil {
+		return nil, err
+	}
+	defer z.Close()
+	return ioutil.ReadAll(z)
+}
+
+// remove is a proxy to the same method on fs
+func (f *fsc) remove(name string) error {
+	return f.s.remove(name)
+}
+
+// mkdir is a proxy to the same method on fs
+func (f *fsc) mkdir(name string) error {
+	return f.s.mkdir(name)
+}
+
+// getl is a proxy to the same method on fs
+func (f *fsc) getl(name string) lock {
+	return f.s.getl(name)
 }

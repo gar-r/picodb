@@ -199,6 +199,18 @@ type testFs struct {
 	getlResult   func(string) lock
 }
 
+func (f *testFs) reset() {
+	f.writeResult = nil
+	f.writeVerify = nil
+	f.readResult = nil
+	f.readVerify = nil
+	f.removeResult = nil
+	f.removeVerify = nil
+	f.mkdirResult = nil
+	f.mkdirVerify = nil
+	f.getlResult = nil
+}
+
 func (f *testFs) write(name string, val []byte) error {
 	if f.writeVerify != nil {
 		f.writeVerify(name, val)
