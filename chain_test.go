@@ -105,10 +105,10 @@ func Test_ChainErrors(t *testing.T) {
 		assert.ErrorIs(t, err, notfound)
 	})
 
-	t.Run("key missing during delete", func(t *testing.T) {
+	t.Run("key missing partially", func(t *testing.T) {
 		defer c1.reset()
 		defer c2.reset()
-		c1.loadMock = func(s string) ([]byte, error) { return nil, notfound }
+		c1.deleteMock = func(s string) error { return notfound }
 		err := chain.delete("foo")
 		assert.NoError(t, err)
 	})
