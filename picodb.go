@@ -28,11 +28,8 @@ func New(options *PicoDbOptions) *PicoDb {
 
 func newKvs(options *PicoDbOptions) kvs {
 	var dirfs = &dirfs{
-		root: options.RootDir,
-		s: &fs{
-			fmode: options.FileMode,
-			dmode: options.DirMode,
-		},
+		root:    options.RootDir,
+		s:       newStorage(options),
 		locking: options.Locking,
 	}
 	if !options.Caching {
@@ -43,6 +40,18 @@ func newKvs(options *PicoDbOptions) kvs {
 			&cache{m: &sync.Map{}},
 			dirfs,
 		},
+	}
+}
+
+func newStorage(opt *PicoDbOptions) storage {
+	fs := &fs{
+		fmode: opt.FileMode,
+		dmode: opt.DirMode,
+	}
+	if opt.Compression {
+		return &fsc{fs}
+	} else {
+		return fs
 	}
 }
 

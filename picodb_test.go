@@ -2,8 +2,13 @@ package picodb
 
 import (
 	"errors"
+	"math/rand"
+	"os"
+	"strconv"
 	"testing"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -169,4 +174,57 @@ func (t *testKvs) delete(key string) error {
 		return t.deleteMock(key)
 	}
 	return nil
+}
+
+var rnd *rand.Rand = rand.New(rand.NewSource(time.Now().UnixNano()))
+
+func Benchmark_Default(b *testing.B) {
+	pico := New(Defaults())
+	defer cleanup(b, pico)
+	for i := 0; i < b.N; i++ {
+		loadOrStore(b, pico)
+	}
+}
+
+func Benchmark_Compress(b *testing.B) {
+	pico := New(Defaults().WithCompression())
+	defer cleanup(b, pico)
+	for i := 0; i < b.N; i++ {
+		loadOrStore(b, pico)
+	}
+}
+
+func Benchmark_Caching(b *testing.B) {
+	pico := New(Defaults().WithCaching())
+	defer cleanup(b, pico)
+	for i := 0; i < b.N; i++ {
+		loadOrStore(b, pico)
+	}
+}
+
+func Benchmark_Locking(b *testing.B) {
+	pico := New(Defaults().WithLocking())
+	defer cleanup(b, pico)
+	for i := 0; i < b.N; i++ {
+		loadOrStore(b, pico)
+	}
+}
+
+func loadOrStore(b *testing.B, pico *PicoDb) {
+	b.Helper()
+	for i := 0; i < 100000; i++ {
+		key := strconv.Itoa(rnd.Intn(100))
+		_, err := pico.LoadString(key)
+		if err != nil {
+			if errors.Is(err, NewKeyNotFound(key)) {
+				pico.StoreString(key, uuid.NewString())
+			} else {
+				b.Error(err)
+			}
+		}
+	}
+}
+
+func cleanup(b *testing.B, pico *PicoDb) {
+	os.RemoveAll(pico.opt.RootDir)
 }
