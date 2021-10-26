@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -178,51 +177,115 @@ func (t *testKvs) delete(key string) error {
 
 var rnd *rand.Rand = rand.New(rand.NewSource(time.Now().UnixNano()))
 
-func Benchmark_Default(b *testing.B) {
-	pico := New(Defaults())
-	defer cleanup(b, pico)
-	for i := 0; i < b.N; i++ {
-		loadOrStore(b, pico)
-	}
-}
+func Benchmark_Store(b *testing.B) {
 
-func Benchmark_Compress(b *testing.B) {
-	pico := New(Defaults().WithCompression())
-	defer cleanup(b, pico)
-	for i := 0; i < b.N; i++ {
-		loadOrStore(b, pico)
-	}
-}
+	str := randString(1000)
 
-func Benchmark_Caching(b *testing.B) {
-	pico := New(Defaults().WithCaching())
-	defer cleanup(b, pico)
-	for i := 0; i < b.N; i++ {
-		loadOrStore(b, pico)
-	}
-}
-
-func Benchmark_Locking(b *testing.B) {
-	pico := New(Defaults().WithLocking())
-	defer cleanup(b, pico)
-	for i := 0; i < b.N; i++ {
-		loadOrStore(b, pico)
-	}
-}
-
-func loadOrStore(b *testing.B, pico *PicoDb) {
-	b.Helper()
-	for i := 0; i < 100000; i++ {
-		key := strconv.Itoa(rnd.Intn(100))
-		_, err := pico.LoadString(key)
-		if err != nil {
-			if errors.Is(err, NewKeyNotFound(key)) {
-				pico.StoreString(key, uuid.NewString())
-			} else {
-				b.Error(err)
-			}
+	b.Run("default", func(b *testing.B) {
+		pico := New(Defaults())
+		defer cleanup(b, pico)
+		for i := 0; i < b.N; i++ {
+			benchStore(b, pico, i, str)
 		}
+	})
+
+	b.Run("compression", func(b *testing.B) {
+		pico := New(Defaults().WithCompression())
+		defer cleanup(b, pico)
+		for i := 0; i < b.N; i++ {
+			benchStore(b, pico, i, str)
+		}
+	})
+
+	b.Run("caching", func(b *testing.B) {
+		pico := New(Defaults().WithCaching())
+		defer cleanup(b, pico)
+		for i := 0; i < b.N; i++ {
+			benchStore(b, pico, i, str)
+		}
+	})
+
+	b.Run("locking", func(b *testing.B) {
+		pico := New(Defaults().WithLocking())
+		defer cleanup(b, pico)
+		for i := 0; i < b.N; i++ {
+			benchStore(b, pico, i, str)
+		}
+	})
+
+}
+
+func Benchmark_Load(b *testing.B) {
+
+	key := "key"
+	const Mb = 1000000
+	str := randString(1 * Mb)
+
+	b.Run("default", func(b *testing.B) {
+		pico := New(Defaults())
+		defer cleanup(b, pico)
+		pico.StoreString(key, str)
+		for i := 0; i < b.N; i++ {
+			benchLoad(b, pico, key)
+		}
+	})
+
+	b.Run("compression", func(b *testing.B) {
+		pico := New(Defaults().WithCompression())
+		defer cleanup(b, pico)
+		pico.StoreString(key, str)
+		for i := 0; i < b.N; i++ {
+			benchLoad(b, pico, key)
+		}
+	})
+
+	b.Run("caching", func(b *testing.B) {
+		pico := New(Defaults().WithCaching())
+		defer cleanup(b, pico)
+		pico.StoreString(key, str)
+		for i := 0; i < b.N; i++ {
+			benchLoad(b, pico, key)
+		}
+	})
+
+	b.Run("locking", func(b *testing.B) {
+		pico := New(Defaults().WithLocking())
+		defer cleanup(b, pico)
+		pico.StoreString(key, str)
+		for i := 0; i < b.N; i++ {
+			benchLoad(b, pico, key)
+		}
+	})
+
+}
+
+func benchStore(b *testing.B, pico *PicoDb, i int, str string) {
+	b.Helper()
+	key := strconv.Itoa(i)
+	err := pico.StoreString(key, str)
+	if err != nil {
+		b.Error(err)
 	}
+
+}
+
+func benchLoad(b *testing.B, pico *PicoDb, key string) {
+	b.Helper()
+	_, err := pico.LoadString(key)
+	if err != nil {
+		b.Error(err)
+	}
+
+}
+
+const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+func randString(length int) string {
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = charset[rnd.Intn(len(charset))]
+	}
+	return string(b)
 }
 
 func cleanup(b *testing.B, pico *PicoDb) {
