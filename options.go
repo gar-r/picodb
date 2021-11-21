@@ -24,6 +24,11 @@ func Defaults() *PicoDbOptions {
 	}
 }
 
+func (p *PicoDbOptions) WithRootDir(rootDir string) *PicoDbOptions {
+	p.RootDir = rootDir
+	return p
+}
+
 func (p *PicoDbOptions) WithCaching() *PicoDbOptions {
 	p.Caching = true
 	return p
