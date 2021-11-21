@@ -14,14 +14,14 @@ import (
 )
 
 func example() {
-    // make a new picodb instance with default settins
+    // make a new picodb instance with default settings
     pico := picodb.New(picodb.Defaults()
 
     // store a string
     err := pico.StoreString("key", "pico")
 
     // retrieve the stored string
-    v, err := pico.LoadString(key)    // v == "pico"
+    v, err := pico.LoadString("key")    // v == "pico"
 
     // remove the key
     pico.Delete("key")
@@ -79,6 +79,50 @@ func example() {
 }
 ```
 
+## errors
+
+Loading a non-existing key is an error:
+
+```go
+import (
+	"errors"
+	"okki.hu/picodb"
+)
+
+func example() {
+    pico := picodb.New(picodb.Defaults()
+	key := "missing"
+    _, err := pico.LoadString(key)
+	if err != nil {
+		if errors.Is(err, pico.NewKeyNotFound(key)) {
+			// key is missing
+		}
+		// something else happened
+	}
+}
+```
+
+Keys that contain os specific path separator characters are not valid, and attempting to use such a key will result in an error:
+
+```go
+import (
+	"errors"
+	"okki.hu/picodb"
+)
+
+func example() {
+    pico := picodb.New(picodb.Defaults()
+	key := "ill/egal"
+    _, err := pico.StoreString(key)
+	if err != nil {
+		if errors.Is(err, pico.NewKeyInvalid(key)) {
+			// key is invalid
+		}
+		// something else happened
+	}
+}
+```
+
 # additional features
 
 ## caching
@@ -102,7 +146,7 @@ func example() {
 
 ## locking
 
-Locking uses file locks (`flock`) to ensure that only one thread can write the file belonging to a key. Other threads will block and wait until writing is done and the lock is released. Enabling locking slightly reduces performance.
+Locking uses file locks (`flock`) to ensure that only one thread can write the file belonging to a key. Other threads will block and wait until writing is done and the lock is released. Enabling locking slightly reduces write performance.
 
 ```go
 func example() {
