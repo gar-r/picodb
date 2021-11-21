@@ -21,7 +21,7 @@ func example() {
     err := pico.StoreString("key", "pico")
 
     // retrieve the stored string
-    v, err := pico.Load(key)    // v == "pico"
+    v, err := pico.LoadString(key)    // v == "pico"
 
     // remove the key
     pico.Delete("key")
