@@ -1,4 +1,4 @@
-module okki.hu/picodb
+module github.com/garricasaurus/picodb
 
 go 1.17
 

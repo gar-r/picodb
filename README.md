@@ -10,7 +10,7 @@ The basic example demonstrates how to use the library with default settings.
 
 ```go
 import (
-	"okki.hu/picodb"
+	"github.com/garricasaurus/picodb"
 )
 
 func example() {
@@ -48,7 +48,7 @@ One way is to pass in a `PicoDbOptions` to `New`. The following example sets a c
 ```go
 import (
 	"os"
-	"okki.hu/picodb"
+    "github.com/garricasaurus/picodb"
 )
 
 func demo() {
@@ -67,7 +67,7 @@ The above example can also be written using the provided builders:
 ```go
 import (
 	"os"
-	"okki.hu/picodb"
+    "github.com/garricasaurus/picodb"
 )
 
 func example() {
@@ -86,7 +86,7 @@ Loading a non-existing key is an error:
 ```go
 import (
 	"errors"
-	"okki.hu/picodb"
+    "github.com/garricasaurus/picodb"
 )
 
 func example() {
@@ -107,7 +107,7 @@ Keys that contain os specific path separator characters are not valid, and attem
 ```go
 import (
 	"errors"
-	"okki.hu/picodb"
+    "github.com/garricasaurus/picodb"
 )
 
 func example() {
@@ -133,7 +133,7 @@ Note, that the built-in basic cache does not support expiry of values, nor does 
 
 ```go
 import (
-	"okki.hu/picodb"
+    "github.com/garricasaurus/picodb"
 )
 
 func example() {
