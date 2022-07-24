@@ -10,7 +10,7 @@ The basic example demonstrates how to use the library with default settings.
 
 ```go
 import (
-	"github.com/garricasaurus/picodb"
+	"git.okki.hu/garric/picodb"
 )
 
 func example() {
@@ -48,7 +48,7 @@ One way is to pass in a `PicoDbOptions` to `New`. The following example sets a c
 ```go
 import (
 	"os"
-    "github.com/garricasaurus/picodb"
+    "git.okki.hu/garric/picodb"
 )
 
 func demo() {
@@ -67,7 +67,7 @@ The above example can also be written using the provided builders:
 ```go
 import (
 	"os"
-    "github.com/garricasaurus/picodb"
+    "git.okki.hu/garric/picodb"
 )
 
 func example() {
@@ -75,7 +75,7 @@ func example() {
 		picodb.Defaults().
 			WithRootDir("dir").
 			WithFileMode(os.FileMode(0666)).
-			WithDirMode(os.FileMode(0777)))	
+			WithDirMode(os.FileMode(0777)))
 }
 ```
 
@@ -86,7 +86,7 @@ Loading a non-existing key is an error:
 ```go
 import (
 	"errors"
-    "github.com/garricasaurus/picodb"
+    "git.okki.hu/garric/picodb"
 )
 
 func example() {
@@ -107,7 +107,7 @@ Keys that contain os specific path separator characters are not valid, and attem
 ```go
 import (
 	"errors"
-    "github.com/garricasaurus/picodb"
+    "git.okki.hu/garric/picodb"
 )
 
 func example() {
@@ -133,7 +133,7 @@ Note, that the built-in basic cache does not support expiry of values, nor does 
 
 ```go
 import (
-    "github.com/garricasaurus/picodb"
+    "git.okki.hu/garric/picodb"
 )
 
 func example() {
@@ -164,7 +164,7 @@ Note that compression has a significant performance impact. In addition, the siz
 ```go
 func example() {
     pico := picodb.New(picodb.Defaults().WithCompression())
-    var data []byte	// large data	
+    var data []byte	// large data
     pico.Store("foo", data)
 }
 ```
